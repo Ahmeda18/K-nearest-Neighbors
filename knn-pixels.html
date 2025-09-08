@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Nearest Neighbors Pixel Classifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            text-align: center;
+        }
+        .controls {
+            margin-bottom: 10px;
+        }
+        canvas {
+            border: 1px solid #333;
+            background: #fff;
+            cursor: crosshair;
+        }
+        button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            font-size: 16px;
+        }
+        input[type="number"] {
+            width: 50px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>K-Nearest Neighbors Pixel Classifier</h1>
+    <div class="controls">
+        <label for="k-value">K value:</label>
+        <input type="number" id="k-value" min="1" value="3">
+        <button id="mode-red">Add Red</button>
+        <button id="mode-blue">Add Blue</button>
+        <button id="mode-knn">Predict (KNN)</button>
+        <button id="random">Random Pixels</button>
+        <button id="clear">Clear</button>
+    </div>
+    <canvas id="canvas" width="500" height="500"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const kInput = document.getElementById('k-value');
+        const modeRed = document.getElementById('mode-red');
+        const modeBlue = document.getElementById('mode-blue');
+        const modeKNN = document.getElementById('mode-knn');
+        const clearBtn = document.getElementById('clear');
+        const randomBtn = document.getElementById('random');
+
+        let mode = 'red'; // 'red', 'blue', 'knn'
+        let points = []; // {x, y, color}
+
+        function drawPoints() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (const p of points) {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 7, 0, 2 * Math.PI);
+                ctx.fillStyle = p.color === 'red' ? 'red' : 'blue';
+                ctx.fill();
+                ctx.strokeStyle = '#333';
+                ctx.stroke();
+            }
+        }
+
+        function getKNNColor(x, y, k) {
+            if (points.length === 0) return 'red'; // default
+            // Calculate distances
+            const dists = points.map(p => ({
+                color: p.color,
+                dist: Math.hypot(p.x - x, p.y - y)
+            }));
+            dists.sort((a, b) => a.dist - b.dist);
+            const nearest = dists.slice(0, k);
+            const reds = nearest.filter(p => p.color === 'red').length;
+            const blues = nearest.filter(p => p.color === 'blue').length;
+            return reds >= blues ? 'red' : 'blue';
+        }
+
+        function addRandomPixels(numRed = 10, numBlue = 10) {
+            for (let i = 0; i < numRed; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                points.push({x, y, color: 'red'});
+            }
+            for (let i = 0; i < numBlue; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                points.push({x, y, color: 'blue'});
+            }
+            drawPoints();
+        }
+
+        canvas.addEventListener('click', e => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            let color;
+            if (mode === 'red') color = 'red';
+            else if (mode === 'blue') color = 'blue';
+            else if (mode === 'knn') color = getKNNColor(x, y, parseInt(kInput.value));
+            points.push({x, y, color});
+            drawPoints();
+        });
+
+        modeRed.onclick = () => { mode = 'red'; };
+        modeBlue.onclick = () => { mode = 'blue'; };
+        modeKNN.onclick = () => { mode = 'knn'; };
+        clearBtn.onclick = () => {
+            points = [];
+            drawPoints();
+        };
+        randomBtn.onclick = () => {
+            addRandomPixels(10, 10);
+        };
+
+        drawPoints();
+    </script>
+</body>
+</html>
